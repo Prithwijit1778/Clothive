@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clothive - Premium Marketplace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lenis for Premium Smooth Scrolling -->
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    
+    :root { 
+        --primary: #6c4cff; 
+        --primary-hover: #5a3ee0;
+        --bg: #f8f9fa; 
+    }
+    
+    /* Lenis required base styles */
+    html.lenis, html.lenis body {
+        height: auto;
+    }
+    .lenis.lenis-smooth {
+        scroll-behavior: auto !important;
+    }
+    .lenis.lenis-smooth [data-lenis-prevent] {
+        overscroll-behavior: contain;
+    }
+    .lenis.lenis-stopped {
+        overflow: hidden;
+    }
+    .lenis.lenis-smooth iframe {
+        pointer-events: none;
+    }
+
+    body { 
+        font-family: 'Plus Jakarta Sans', sans-serif; 
+        background: var(--bg); 
+        color: #0f172a; 
+        overflow-x: hidden;
+    }
+    
+    /* Glassmorphism utility */
+    .glass { 
+        background: rgba(255, 255, 255, 0.85); 
+        backdrop-filter: blur(12px); 
+        border-bottom: 1px solid #e2e8f0; 
+    }
+    
+    /* Smooth Hover Effects - upgraded to softer, more elevated shadows */
+    .card-hover { 
+        transform: translateZ(0);
+        transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s ease, border-color 0.45s ease;
+        will-change: transform;
+    }
+    .card-hover:hover { 
+        transform: translateY(-8px) scale(1.01); 
+        border-color: rgba(108, 76, 255, 0.18);
+        box-shadow: 0 25px 35px -5px rgba(108,108,255,0.08), 0 10px 15px -5px rgba(108,108,255,0.05); 
+    }
+    
+    /* Staggered Fade-In Animation */
+    @keyframes fadeUpIn {
+        from { opacity: 0; transform: translateY(26px) scale(0.985); filter: blur(4px); }
+        to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    .animate-fade-in {
+        opacity: 0;
+        animation: fadeUpIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes graphReveal {
+        from { opacity: 0; clip-path: inset(0 100% 0 0); transform: scale(1.025); }
+        to { opacity: 1; clip-path: inset(0 0 0 0); transform: scale(1); }
+    }
+
+    @keyframes chartSheen {
+        0%, 35% { transform: translateX(-130%); }
+        55%, 100% { transform: translateX(130%); }
+    }
+
+    @keyframes pulseDot {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.25); opacity: 0.65; }
+    }
+
+    .price-graph-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
+        border: 1px solid #e5e7eb;
+        background: linear-gradient(135deg, #ffffff, #f5f3ff);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .price-graph-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        animation: graphReveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .price-graph-card:hover img {
+        transform: scale(1.02);
+    }
+    .price-graph-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.55) 46%, transparent 68%);
+        transform: translateX(-130%);
+        animation: chartSheen 4.8s ease-in-out infinite;
+        pointer-events: none;
+    }
+    .live-dot {
+        animation: pulseDot 1.8s ease-in-out infinite;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Modal System */
+    .modal-overlay { 
+        display: none; 
+        position: fixed; 
+        inset: 0; 
+        background: rgba(15, 23, 42, 0.6); 
+        backdrop-filter: blur(6px); 
+        z-index: 2000; 
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active { display: flex; opacity: 1; }
+    
+    .modal-content {
+        transform: scale(0.94) translateY(24px);
+        opacity: 0;
+        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .modal-overlay.active .modal-content {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    /* Side Panels */
+    .side-panel {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        height: 100vh;
+        width: 100%;
+        max-width: 380px;
+        background: white;
+        z-index: 1500;
+        transition: right 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: -10px 0 40px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+    }
+    .side-panel.open { right: 0; }
+    
+    /* Panel Overlay */
+    .panel-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 1400; opacity: 0; transition: opacity 0.3s ease;
+    }
+    .panel-overlay.active { display: block; opacity: 1; }
+
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed; bottom: 2rem; right: 2rem; z-index: 3000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none;
+    }
+    .toast {
+        background: white; color: #0f172a; padding: 1rem 1.5rem; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); font-weight: 600; display: flex; align-items: center; gap: 0.75rem; transform: translateX(120%) scale(0.98); opacity: 0; transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease; border: 1px solid #e2e8f0;
+    }
+    .toast.show { transform: translateX(0) scale(1); opacity: 1; }
+
+    /* Custom Checkbox */
+    .custom-checkbox { accent-color: var(--primary); width: 1.25rem; height: 1.25rem; cursor: pointer; }
+    
+    /* Delivery Toggle Active State */
+    .delivery-btn.active { border-color: var(--primary); background: #f0edff; color: var(--primary); }
+
+    /* Upgraded Category Pills */
+    .category-pill {
+      background: #fff;
+      border: 1px solid #ececec;
+      color: #444;
+      padding: 10px 24px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, color 0.25s ease, background 0.25s ease;
+      white-space: nowrap;
+    }
+    .category-pill:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 18px -12px rgba(15, 23, 42, 0.35);
+    }
+    .category-pill.active {
+      background: linear-gradient(135deg, var(--primary), #8165ff);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 8px 15px -3px rgba(108,108,255,0.3);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="glass sticky top-0 px-6 md:px-12 py-4 flex items-center justify-between shadow-sm z-50">
+  
+  <!-- Logo Section -->
+  <div class="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity" onclick="lenis.scrollTo(0)">
+    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-[var(--primary)] to-[#8165ff] flex items-center justify-center shadow-md overflow-hidden border-2 border-white">
+        <!-- Add your actual logo img tag here, replacing the 'C' -->
+        <img src="image/logo_result.webp" alt="Clothive Logo" class="w-full h-full object-cover">
+    </div>
+    <div class="text-3xl font-black text-[var(--primary)] tracking-tighter">CLOTHIVE.</div>
+  </div>
+  
+  <!-- Search Bar -->
+  <div class="flex-1 max-w-xl mx-8 hidden md:block">
+     <div class="bg-gray-100 rounded-full px-5 py-2.5 flex items-center gap-3 border border-gray-200 shadow-sm relative transition-all focus-within:ring-2 focus-within:ring-[var(--primary)] focus-within:border-transparent focus-within:bg-white">
+      <span class="text-gray-400">🔍</span>
+      <input id="search" class="w-full bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400" placeholder="Search products...">
+      <div id="liveResults" class="hidden absolute top-full left-0 right-0 bg-white rounded-2xl shadow-xl mt-2 overflow-hidden border border-gray-200 z-50"></div>
+    </div>
+  </div>
+
+  <div class="flex gap-5 sm:gap-6 items-center">
+    <button onclick="showToast('📦 Your Orders list is currently empty.')" class="text-2xl hover:scale-110 transition-transform" title="Orders">📦</button>
+    <button onclick="togglePanel('sideWish')" class="text-2xl hover:scale-110 transition-transform relative" title="Wishlist">
+        🤍 <span id="wishCount" class="absolute -top-1 -right-2 bg-pink-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md hidden">0</span>
+    </button>
+    <button onclick="togglePanel('sideCart')" class="text-2xl hover:scale-110 transition-transform relative" title="Cart">🛒 
+       <span id="cartCount" class="absolute -top-1 -right-2 bg-[var(--primary)] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md hidden">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- Strict Category Strip -->
+<div class="max-w-[1400px] mx-auto px-4 sm:px-8 pt-6">
+  <section class="flex gap-4 overflow-auto pb-4" id="categoryTabs" data-lenis-prevent>
+    <button class="category-pill active" onclick="setCategory('All Categories')">All Categories</button>
+    <button class="category-pill" onclick="setCategory('Sport')">Sport</button>
+    <button class="category-pill" onclick="setCategory('Formal')">Formal</button>
+  </section>
+</div>
+
+<!-- Main Layout -->
+<div class="max-w-[1400px] mx-auto p-4 sm:p-8 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+  
+  <!-- Sidebar / Filters -->
+  <aside class="space-y-6">
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 sticky top-28">
+      
+      <div class="mb-6">
+        <div class="flex items-center justify-between">
+          <h3 class="font-black text-lg">Price Range</h3>
+          <span class="text-xs text-gray-400 cursor-pointer hover:underline">Reset</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-0.5">The average price is $87</p>
+        <div class="mt-3 h-32 price-graph-card">
+           <img src="image/graph org.webp" alt="Average product price graph">
+           <div class="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] font-black text-gray-800 shadow-sm backdrop-blur">
+             <span class="live-dot h-2 w-2 rounded-full bg-emerald-400"></span>
+             Live trend
+           </div>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="font-black text-lg">Star Rating</h3>
+        <div class="mt-1 text-yellow-400 text-lg">★★★★☆</div>
+        <div class="text-xs text-gray-400 mt-0.5">4 Stars & up</div>
+      </div>
+
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-black text-lg">Brand</h3>
+        <span onclick="resetFilters()" class="text-xs text-gray-400 cursor-pointer hover:underline">Reset</span>
+      </div>
+      <div id="filterList" class="space-y-4">
+          <!-- Dynamically populated checkboxes -->
+      </div>
+ 
+      <button onclick="resetFilters()" class="mt-8 w-full py-3 text-sm font-bold bg-gray-50 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors">
+        Reset Filters
+      </button>
+    </div>
+  </aside>
+
+  <!-- Products Grid -->
+  <main>
+      <div class="flex justify-between items-center mb-6 px-2">
+          <h1 class="text-2xl font-black text-gray-800" id="mainTitle">New Arrivals</h1>
+          <span id="productCount" class="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">0 Products</span>
+      </div>
+      <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
+          <!-- Dynamically populated products -->
+      </div>
+  </main>
+</div>
+
+<!-- PRODUCT DETAILS MODAL -->
+<div id="productModal" class="modal-overlay justify-center items-center">
+  <div class="modal-content bg-white w-full max-w-5xl rounded-[2rem] relative mx-4 flex flex-col md:flex-row overflow-hidden shadow-2xl" data-lenis-prevent>
+    
+    <button onclick="closeModal()" class="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur text-gray-800 w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold hover:bg-gray-100 shadow-sm transition-colors">
+        ✕
+    </button>
+
+    <div class="md:w-1/2 bg-gray-50 p-6 sm:p-8 flex flex-col gap-4">
+        <div class="w-full aspect-[4/5] rounded-2xl overflow-hidden bg-white shadow-sm border border-gray-100">
+            <img id="modalMainImg" src="" alt="Product" class="w-full h-full object-cover">
+        </div>
+        <div class="grid grid-cols-3 gap-4" id="modalThumbnails">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+
+    <div class="md:w-1/2 p-6 sm:p-10 flex flex-col justify-center">
+        <span id="modalBrand" class="text-[var(--primary)] font-bold text-sm tracking-wider uppercase mb-2"></span>
+        <h2 id="modalTitle" class="text-3xl font-black mb-4 leading-tight text-gray-900"></h2>
+        
+        <div class="flex items-center gap-4 mb-6">
+            <span id="modalPrice" class="text-3xl font-bold text-gray-900"></span>
+            <div class="flex items-center text-yellow-400 text-sm">
+                ★★★★<span class="text-gray-300">★</span> <span class="text-gray-500 ml-1">(128 reviews)</span>
+            </div>
+        </div>
+
+        <p class="text-gray-500 mb-8 leading-relaxed">
+            Premium quality material designed for ultimate comfort and durability. Elevate your everyday style with this exclusive piece from our latest collection.
+        </p>
+
+        <div class="mb-8">
+            <h4 class="font-bold mb-3 text-sm text-gray-700">Select Delivery Option</h4>
+            <div class="grid grid-cols-2 gap-3">
+                <button class="delivery-btn active border-2 border-gray-200 rounded-xl p-3 text-left transition-colors" onclick="toggleDelivery(this)">
+                    <div class="font-bold text-sm">Standard</div>
+                    <div class="text-xs opacity-70">3-5 Business Days</div>
+                </button>
+                <button class="delivery-btn border-2 border-gray-200 rounded-xl p-3 text-left transition-colors" onclick="toggleDelivery(this)">
+                    <div class="font-bold text-sm">Express (+ $15)</div>
+                    <div class="text-xs opacity-70">1-2 Business Days</div>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 mt-auto">
+            <button id="btnAddToCart" class="flex-1 py-4 px-6 rounded-2xl font-bold border-2 border-gray-200 text-gray-800 hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors flex justify-center items-center gap-2">
+                🛒 Add to Cart
+            </button>
+            <button id="btnBuyNow" class="flex-1 py-4 px-6 rounded-2xl font-bold bg-gradient-to-r from-[var(--primary)] to-[#8165ff] text-white hover:shadow-lg hover:shadow-indigo-200 transition-all flex justify-center items-center gap-2 hover:-translate-y-0.5">
+                ⚡ Buy Now
+            </button>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL OVERLAYS -->
+<div id="panelOverlay" class="panel-overlay" onclick="closePanels()"></div>
+
+<!-- Cart Panel -->
+<div id="sideCart" class="side-panel">
+    <div class="p-6 flex justify-between items-center mb-2 border-b">
+        <h2 class="text-2xl font-black">Your Cart</h2>
+        <button onclick="togglePanel('sideCart')" class="text-xl p-2 hover:bg-gray-100 rounded-full">✕</button>
+    </div>
+    <div id="cartItems" class="flex-1 overflow-y-auto p-6 space-y-4" data-lenis-prevent></div>
+    <div class="p-6 border-t bg-gray-50">
+        <div class="flex justify-between font-bold text-lg mb-4">
+            <span>Total:</span>
+            <span id="cartTotal">$0.00</span>
+        </div>
+        <button onclick="checkout()" class="w-full py-4 bg-gradient-to-r from-[var(--primary)] to-[#8165ff] text-white rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all">
+            Proceed to Checkout
+        </button>
+    </div>
+</div>
+
+<!-- Wishlist Panel -->
+<div id="sideWish" class="side-panel">
+    <div class="p-6 flex justify-between items-center mb-2 border-b">
+        <h2 class="text-2xl font-black">Wishlist 🤍</h2>
+        <button onclick="togglePanel('sideWish')" class="text-xl p-2 hover:bg-gray-100 rounded-full">✕</button>
+    </div>
+    <div id="wishItems" class="flex-1 overflow-y-auto p-6 space-y-4" data-lenis-prevent></div>
+</div>
+
+<!-- Toasts Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// --- INITIALIZE LENIS SMOOTH SCROLLING ---
+const lenis = new Lenis({
+  duration: 1.5,      // Slower animation
+  easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function for that lightly bouncy/smooth stop
+  direction: 'vertical',
+  gestureDirection: 'vertical',
+  smooth: true,
+  mouseMultiplier: 0.8, // Slightly slows down mouse wheel for heavier premium feel
+  smoothTouch: false,
+  touchMultiplier: 2,
+  infinite: false,
+});
+
+function raf(time) {
+  lenis.raf(time);
+  requestAnimationFrame(raf);
+}
+requestAnimationFrame(raf);
+
+
+// Mock Product Data mapped to specific categories for the assignment
+const products = [
+    {
+        id: 1, brand: 'Nike', name: 'Athletic Track Shorts', price: 45, category: 'Sport',
+        images: [
+            'image/sprint-shorts_result.webp',
+            'image/sprint-shorts2_result.webp',
+            'image/sprint-shorts3_result.webp'
+        ]
+    },
+    {
+        id: 2, brand: 'Zara', name: 'Formal Shirts', price: 89, category: 'Formal',
+        images: [
+            'image/formal-shirt_result.webp',
+            'image/formal-shirt2_result.webp',
+            'image/formal-shirt3_result.webp'
+        ]
+    },
+    {
+        id: 3, brand: 'Adidas', name: 'Originals Essentials Hoodie', price: 65, category: 'Casual',
+        images: [
+            'image/flex-hoodie_result.webp',
+            'image/flex-hoodie2_result.webp',
+            'image/flex-hoodie3_result.webp'
+        ]
+    },
+    {
+        id: 4, brand: 'H&M', name: 'Core tee pants', price: 45, category: 'Casual',
+        images: [
+            'image/core-tee_result.webp',
+            'image/core-tee3_result.webp',
+            'image/core-tee2_result.webp'
+        ]
+    },
+    {
+        id: 5, brand: 'Puma', name: 'Denim Jacket', price: 85, category: 'Casual',
+        images: [
+            'image/denim-jacket_result.webp',
+            'image/denim-jacket3_result.webp',
+            'image/denim-jacket2_result.webp'
+        ]
+    },
+    {
+        id: 6, brand: 'Nike', name: 'Sportswear Tech Fleece', price: 130, category: 'Casual',
+        images: [
+            'image/sneackers_result.webp',
+            'image/sneackers2_result.webp',
+            'image/sneackers3_result.webp'
+        ]
+    },
+   {
+        id: 7, brand: 'Zara', name: 'Sportswear Tech Fleece', price: 130, category: 'Casual',
+        images: [
+            'image/leggins_result.webp',
+            'image/leggins2_result.webp',
+            'image/leggins3_result.webp'
+        ]
+    },
+  {
+        id: 8, brand: 'Zara', name: 'Summer dresse', price: 110, category: 'Casual',
+        images: [
+            'image/summer-dress_result.webp',
+            'image/summer-dress3_result.webp',
+            'image/summer-dress2_result.webp'
+        ]
+    }
+];
+
+// App State
+let activeFilters = [];
+let activeCategory = 'All Categories';
+let cart = [];
+let wishlist = [];
+let currentProductInModal = null;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    setupFilters();
+    renderProducts();
+    setupSearch();
+});
+
+// --- Category Logic ---
+function setCategory(category) {
+    activeCategory = category;
+    
+    const tabs = document.querySelectorAll('#categoryTabs .category-pill');
+    tabs.forEach(tab => {
+        if(tab.textContent.trim() === category) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+
+    const titleEl = document.getElementById('mainTitle');
+    titleEl.textContent = category === 'All Categories' ? 'Complete Collection' : `${category} Collection`;
+    
+    renderProducts();
+}
+
+// --- Search Bar Engine ---
+function setupSearch() {
+    const searchInput = document.getElementById('search');
+    const liveResults = document.getElementById('liveResults');
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) {
+            liveResults.classList.add('hidden');
+            return;
+        }
+
+        const matches = products.filter(p => 
+            p.name.toLowerCase().includes(query) || 
+            p.brand.toLowerCase().includes(query)
+        );
+
+        if (matches.length > 0) {
+            liveResults.classList.remove('hidden');
+            liveResults.innerHTML = matches.map(m => `
+                <div onclick="openModal(${m.id}); document.getElementById('liveResults').classList.add('hidden');" 
+                     class="p-4 hover:bg-[#f5f3ff] cursor-pointer transition-colors border-b border-gray-100 flex items-center gap-3">
+                    <img src="${m.images[0]}" class="w-10 h-10 object-cover rounded-lg">
+                    <div>
+                        <div class="font-bold text-sm text-gray-900">${m.name}</div>
+                        <div class="text-xs text-[var(--primary)] font-semibold">${m.brand} • $${m.price}</div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            liveResults.classList.remove('hidden');
+            liveResults.innerHTML = `<div class="p-4 text-sm text-gray-500 text-center">No products found</div>`;
+        }
+    });
+
+    window.addEventListener('click', (e) => {
+        if (!liveResults.contains(e.target) && e.target.id !== 'search') {
+            liveResults.classList.add('hidden');
+        }
+    });
+}
+
+// --- Filtering Logic ---
+function setupFilters() {
+    const brands = [...new Set(products.map(p => p.brand))];
+    const filterContainer = document.getElementById('filterList');
+    
+    filterContainer.innerHTML = brands.map(brand => `
+        <label class="flex items-center justify-between cursor-pointer group">
+            <span class="text-gray-700 font-medium group-hover:text-black transition-colors">${brand}</span>
+            <input type="checkbox" value="${brand}" class="custom-checkbox" onchange="toggleFilter(this)">
+        </label>
+    `).join('');
+}
+
+function toggleFilter(checkbox) {
+    if (checkbox.checked) {
+        activeFilters.push(checkbox.value);
+    } else {
+        activeFilters = activeFilters.filter(b => b !== checkbox.value);
+    }
+    renderProducts();
+}
+
+function resetFilters() {
+    activeFilters = [];
+    document.querySelectorAll('#filterList input').forEach(cb => cb.checked = false);
+    renderProducts();
+}
+
+// --- Render Products with Staggered Animation ---
+function renderProducts() {
+    const grid = document.getElementById('productsGrid');
+    
+    const filteredProducts = products.filter(p => {
+        const categoryMatch = activeCategory === 'All Categories' || p.category === activeCategory;
+        const brandMatch = activeFilters.length === 0 || activeFilters.includes(p.brand);
+        return categoryMatch && brandMatch;
+    });
+    
+    document.getElementById('productCount').textContent = `${filteredProducts.length} Products`;
+    
+    // Clear DOM to re-trigger the CSS keyframe animation smoothly
+    grid.innerHTML = '';
+    
+    if (filteredProducts.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-gray-500">No products found matching your filters.</div>`;
+        return;
+    }
+
+    // Wrap in small timeout to ensure DOM update clears first
+    setTimeout(() => {
+        grid.innerHTML = filteredProducts.map((product, index) => `
+            <div class="bg-white rounded-[1.5rem] p-4 border border-gray-100 card-hover flex flex-col h-full group relative animate-fade-in" style="animation-delay: ${index * 0.08}s">
+                <div class="relative w-full aspect-[4/5] sm:aspect-square rounded-2xl overflow-hidden cursor-pointer bg-gray-50 mb-4" onclick="openModal(${product.id})">
+                    <img src="${product.images[0]}" alt="${product.name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                    <div class="absolute top-3 left-3 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm">
+                        ${product.brand}
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-lg leading-tight text-gray-900 cursor-pointer hover:text-[var(--primary)] transition-colors" onclick="openModal(${product.id})">
+                            ${product.name}
+                        </h3>
+                        <button onclick="toggleWishlist(${product.id}, event)" class="text-xl p-1 hover:bg-gray-50 rounded-full transition-colors ${wishlist.includes(product.id) ? 'text-pink-500' : 'text-gray-400'}">
+                            ${wishlist.includes(product.id) ? '💖' : '🤍'}
+                        </button>
+                    </div>
+                    
+                    <div class="mt-auto pt-4 flex items-center justify-between">
+                        <span class="text-2xl font-black text-gray-900">$${product.price}</span>
+                        <!-- Upgraded gradient 'Add to Cart' Button -->
+                        <button onclick="addToCart(${product.id}, event)" class="bg-gradient-to-r from-[var(--primary)] to-[#8165ff] text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }, 10);
+}
+
+// --- Modal Logic ---
+function openModal(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    currentProductInModal = product;
+    
+    document.getElementById('modalTitle').textContent = product.name;
+    document.getElementById('modalBrand').textContent = product.brand;
+    document.getElementById('modalPrice').textContent = `$${product.price}`;
+    
+    const mainImg = document.getElementById('modalMainImg');
+    mainImg.src = product.images[0];
+    
+    const thumbsContainer = document.getElementById('modalThumbnails');
+    thumbsContainer.innerHTML = product.images.map((img, index) => `
+        <div class="aspect-square rounded-xl overflow-hidden cursor-pointer border-2 ${index === 0 ? 'border-[var(--primary)]' : 'border-transparent opacity-70'} hover:opacity-100 transition-all" 
+             onclick="updateModalMainImg(this, '${img}')">
+            <img src="${img}" class="w-full h-full object-cover">
+        </div>
+    `).join('');
+
+    const btnAdd = document.getElementById('btnAddToCart');
+    const btnBuy = document.getElementById('btnBuyNow');
+    
+    btnAdd.onclick = () => { addToCart(product.id); closeModal(); };
+    btnBuy.onclick = () => { simulateCheckout(product.id); };
+
+    document.querySelectorAll('.delivery-btn').forEach((btn, i) => {
+        if(i === 0) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+    
+    document.getElementById('productModal').classList.add('active');
+    lenis.stop(); // Stop scroll when modal is active
+}
+
+function updateModalMainImg(thumbElem, src) {
+    document.getElementById('modalMainImg').src = src;
+    const thumbs = document.getElementById('modalThumbnails').children;
+    for(let t of thumbs) {
+        t.classList.remove('border-[var(--primary)]');
+        t.classList.add('border-transparent', 'opacity-70');
+    }
+    thumbElem.classList.remove('border-transparent', 'opacity-70');
+    thumbElem.classList.add('border-[var(--primary)]');
+}
+
+function closeModal() {
+    document.getElementById('productModal').classList.remove('active');
+    currentProductInModal = null;
+    lenis.start(); // Restart scrolling
+}
+
+function toggleDelivery(btn) {
+    const btns = btn.parentElement.querySelectorAll('.delivery-btn');
+    btns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+// --- Cart & Wishlist Logic ---
+function addToCart(productId, event = null) {
+    if(event) event.stopPropagation();
+    const product = products.find(p => p.id === productId);
+    cart.push(product);
+    updateCartUI();
+    showToast(`🛍️ Added ${product.name} to Cart`);
+}
+
+function toggleWishlist(productId, event = null) {
+    if(event) event.stopPropagation();
+    const index = wishlist.indexOf(productId);
+    if (index > -1) {
+        wishlist.splice(index, 1);
+        showToast('Removed from Wishlist');
+    } else {
+        wishlist.push(productId);
+        const product = products.find(p => p.id === productId);
+        showToast(`💖 Added ${product.name} to Wishlist`);
+    }
+    updateWishlistUI();
+    renderProducts();
+}
+
+function updateCartUI() {
+    const countEl = document.getElementById('cartCount');
+    if(cart.length > 0) {
+        countEl.textContent = cart.length;
+        countEl.classList.remove('hidden');
+    } else {
+        countEl.classList.add('hidden');
+    }
+
+    const cartItemsEl = document.getElementById('cartItems');
+    if (cart.length === 0) {
+        cartItemsEl.innerHTML = `<div class="text-center text-gray-500 mt-10">Your cart is empty.</div>`;
+    } else {
+        cartItemsEl.innerHTML = cart.map((item, index) => `
+            <div class="flex gap-4 items-center bg-gray-50 p-3 rounded-xl">
+                <img src="${item.images[0]}" class="w-16 h-16 object-cover rounded-lg">
+                <div class="flex-1">
+                    <h4 class="font-bold text-sm leading-tight">${item.name}</h4>
+                    <span class="font-black text-[var(--primary)]">$${item.price}</span>
+                </div>
+                <button onclick="removeFromCart(${index})" class="text-gray-400 hover:text-red-500 text-xl font-bold px-2">&times;</button>
+            </div>
+        `).join('');
+    }
+
+    const total = cart.reduce((sum, item) => sum + item.price, 0);
+    document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
+}
+
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    updateCartUI();
+}
+
+function updateWishlistUI() {
+    const countEl = document.getElementById('wishCount');
+    if(wishlist.length > 0) {
+        countEl.textContent = wishlist.length;
+        countEl.classList.remove('hidden');
+    } else {
+        countEl.classList.add('hidden');
+    }
+
+    const wishItemsEl = document.getElementById('wishItems');
+    if (wishlist.length === 0) {
+        wishItemsEl.innerHTML = `<div class="text-center text-gray-500 mt-10">Your wishlist is empty.</div>`;
+    } else {
+        wishItemsEl.innerHTML = wishlist.map(id => {
+            const item = products.find(p => p.id === id);
+            return `
+            <div class="flex gap-4 items-center bg-gray-50 p-3 rounded-xl">
+                <img src="${item.images[0]}" class="w-16 h-16 object-cover rounded-lg cursor-pointer" onclick="openModal(${item.id}); closePanels();">
+                <div class="flex-1">
+                    <h4 class="font-bold text-sm leading-tight cursor-pointer hover:text-[var(--primary)]" onclick="openModal(${item.id}); closePanels();">${item.name}</h4>
+                    <span class="font-black text-gray-900">$${item.price}</span>
+                </div>
+                <button onclick="addToCart(${item.id}); toggleWishlist(${item.id})" class="text-xs font-bold bg-black text-white px-3 py-2 rounded-lg hover:bg-[var(--primary)] transition-colors">
+                    Move to Cart
+                </button>
+            </div>`;
+        }).join('');
+    }
+}
+
+function simulateCheckout(productId = null) {
+    if(productId) {
+        const product = products.find(p => p.id === productId);
+        closeModal();
+        showToast(`⚡ Order placed successfully for ${product.name}!`);
+    } else {
+        if(cart.length === 0) return showToast("Cart is empty!");
+        cart = [];
+        updateCartUI();
+        togglePanel('sideCart');
+        showToast(`🎉 Checkout successful! Your order is being processed.`);
+    }
+}
+
+function checkout() {
+    simulateCheckout();
+}
+
+// --- Panels & UI Effects ---
+function togglePanel(panelId) {
+    const panel = document.getElementById(panelId);
+    const overlay = document.getElementById('panelOverlay');
+    
+    document.querySelectorAll('.side-panel').forEach(p => {
+        if(p.id !== panelId) p.classList.remove('open');
+    });
+    
+    if (panel.classList.contains('open')) {
+        panel.classList.remove('open');
+        overlay.classList.remove('active');
+        lenis.start(); // Restart main scroll when panel closes
+    } else {
+        if(panelId === 'sideCart') updateCartUI();
+        if(panelId === 'sideWish') updateWishlistUI();
+        panel.classList.add('open');
+        overlay.classList.add('active');
+        lenis.stop(); // Lock main scroll when panel opens
+    }
+}
+
+function closePanels() {
+    document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('open'));
+    document.getElementById('panelOverlay').classList.remove('active');
+    lenis.start(); // Restart main scroll
+}
+
+function showToast(message) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = message;
+    
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeModal();
+        closePanels();
+    }
+});
+</script>
+</body>
+</html>
